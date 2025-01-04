@@ -102,7 +102,11 @@ def get_reviews(restaurant_url, num_reviews=50):
                     print('No "more" button!')
 
                 # Primary description
-                description = review_element.find_element(By.CSS_SELECTOR, 'span[class="wiI7pd"]')
+                try:
+                    description = review_element.find_element(By.CSS_SELECTOR, 'span[class="wiI7pd"]')
+                except:
+                    print("No description found!")
+                    continue
 
                 # Append the descriptions
                 review = {}
@@ -145,7 +149,7 @@ def print_reviews(reviews):
 
 def main():
     restaurant_url = "https://www.google.com/maps/place/Harvey's/@43.8435329,-79.4318975,17z/data=!3m1!4b1!4m6!3m5!1s0x882b2b782fb984c3:0xc4b3700a72067dbe!8m2!3d43.8435329!4d-79.4293226!16s%2Fg%2F1hc349nk3?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D"
-    num_reviews = 20
+    num_reviews = 200
     
     reviews = get_reviews(restaurant_url, num_reviews)
     print_reviews(reviews)
