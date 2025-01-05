@@ -1,4 +1,5 @@
 scraper_env
-reviews.json
+*.json
 .editorconfig
 *.png
+*.txt

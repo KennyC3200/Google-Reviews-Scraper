@@ -4,11 +4,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import time
+import os
 import json
 
 
 """Setup Chrome driver with necessary options"""
-def setup_driver():
+def init_driver():
     print("Setting up Chrome driver...")
     options = webdriver.ChromeOptions()
     # options.add_argument('--headless')  # Temporarily disable headless mode for debugging
@@ -19,8 +20,7 @@ def setup_driver():
 
 
 """Scrape reviews from a Google Maps restaurant page"""
-def get_reviews(restaurant_url, num_reviews=50):
-    driver = setup_driver()
+def get_reviews(driver, restaurant_url, num_reviews=50):
     reviews = []
     seen_reviews = set()
     
@@ -99,14 +99,13 @@ def get_reviews(restaurant_url, num_reviews=50):
 
                     more_descriptions = description_container.find_elements(By.CSS_SELECTOR, 'div[jslog]')
                 except:
-                    print('No "more" button!')
+                    pass
 
                 # Primary description
                 try:
                     description = review_element.find_element(By.CSS_SELECTOR, 'span[class="wiI7pd"]')
                 except:
                     print("No description found!")
-                    continue
 
                 # Append the descriptions
                 review = {}
@@ -128,31 +127,59 @@ def get_reviews(restaurant_url, num_reviews=50):
                 print("Reached the bottom of reviews section or no new reviews loading")
                 break
             last_height = new_height
-            
+
     except Exception as e:
         print(f"An unexpected error occurred: {str(e)}")
         driver.save_screenshot("error_screenshot.png")
     
     finally:
-        print("Closing Chromedriver")
-        driver.quit()
+        print(f"Successfully scraped {restaurant_url}")
     
     print(f"Successfully collected {len(reviews)} reviews!")
     return reviews[:num_reviews]
 
 
-def print_reviews(reviews):
-    with open('reviews.json', 'w') as fd:
+def print_reviews(reviews, directory, filename):
+    os.makedirs(directory, exist_ok=True) # Ensure the directory exists
+    with open(f'{directory}/{filename}.json', 'w') as fd:
         json.dump(reviews, fd, indent=4)
-        print("Reviews have been written to reviews.json")
+        print(f'Reviews have been written to {directory}/{filename}')
+    
+    with open(f'{directory}/{directory}.txt', 'a') as fd:
+        fd.write(f'{filename}: {len(reviews)}\n')
+
+
+def scrape_locations(driver, city, locations):
+    for location in locations:
+        reviews = get_reviews(driver, location["url"], 200)
+        print_reviews(reviews, city, location["filename"])
 
 
 def main():
-    restaurant_url = "https://www.google.com/maps/place/Harvey's/@43.8435329,-79.4318975,17z/data=!3m1!4b1!4m6!3m5!1s0x882b2b782fb984c3:0xc4b3700a72067dbe!8m2!3d43.8435329!4d-79.4293226!16s%2Fg%2F1hc349nk3?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D"
-    num_reviews = 200
-    
-    reviews = get_reviews(restaurant_url, num_reviews)
-    print_reviews(reviews)
+    driver = init_driver()
+
+    richmond_hill = [
+        {"filename": "11000_yonge_st", "url": "https://www.google.com/maps/place/Harvey's/@43.8955846,-79.443642,17z/data=!3m1!4b1!4m6!3m5!1s0x882b2a6bed191d91:0x4560094eb1e60b57!8m2!3d43.8955846!4d-79.443642!16s%2Fg%2F11b6gf67sk?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D"},
+        {"filename": "13008_yonge_st", "url": "https://www.google.com/maps/place/Harvey's/@43.9447601,-79.4552696,17z/data=!3m1!4b1!4m6!3m5!1s0x882ad5cc19421439:0x90b5bd8165817a71!8m2!3d43.9447601!4d-79.4552696!16s%2Fg%2F1tfpvx66?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D"},
+        {"filename": "8865_yonge_st", "url": "https://www.google.com/maps/place/Harvey's/@43.8435329,-79.4293226,17z/data=!3m1!4b1!4m6!3m5!1s0x882b2b782fb984c3:0xc4b3700a72067dbe!8m2!3d43.8435329!4d-79.4293226!16s%2Fg%2F1hc349nk3?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D"}
+    ]
+    markham = [
+        {"filename": "5000_highway_7", "url": "https://www.google.com/maps/place/Harvey's/@43.870206,-79.2868826,17z/data=!3m1!4b1!4m6!3m5!1s0x405736d499f6d47f:0xe34d1d5701533cc!8m2!3d43.870206!4d-79.2868826!16s%2Fg%2F1pp2w_39b?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D"},
+        {"filename": "725_markland_st", "url": "https://www.google.com/maps/place/Harvey's/@43.88563,-79.3732155,17z/data=!3m1!4b1!4m6!3m5!1s0x89d4d549c367d60f:0x6381385cc8608f7a!8m2!3d43.88563!4d-79.3732155!16s%2Fg%2F12xp_qnqj?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D"},
+        {"filename": "7750_markham rd", "url": "https://www.google.com/maps/place/Harvey's/@43.8545928,-79.25854,17z/data=!3m1!4b1!4m6!3m5!1s0x89d4d6f80f59df57:0xa5961d3d5d49ca8a!8m2!3d43.854589!4d-79.2559597!16s%2Fg%2F1q2wfqn73?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D"},
+        {"filename": "9275_highway_48", "url": "https://www.google.com/maps/place/Harvey's/@43.8939913,-79.2640625,17z/data=!3m1!4b1!4m6!3m5!1s0x89d4d620bc8a20b1:0xad1730b07aac8467!8m2!3d43.8939913!4d-79.2640625!16s%2Fg%2F11b5wl549q?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D"}
+    ]
+    toronto = [
+        {"filename": "2150_bloor_st_west", "url": "https://www.google.com/maps/place/Harvey's/@43.6518815,-79.4735839,17z/data=!3m1!4b1!4m6!3m5!1s0x882b3740f50d4f33:0x1904fd45494b5911!8m2!3d43.6518815!4d-79.4735839!16s%2Fg%2F11vlvrjp6j?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D"},
+        {"filename": "1641_queens_st", "url": "https://www.google.com/maps/place/Harvey's/@43.6665177,-79.3150659,17z/data=!3m1!4b1!4m6!3m5!1s0x89d4cb8b7d4b935f:0xb9d6089226abfe2!8m2!3d43.6665177!4d-79.3150659!16s%2Fg%2F1tgddd8f?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D"},
+        {"filename": "1_york_gate_blvd", "url": "https://www.google.com/maps/place/Harvey's/@43.7578548,-79.5202195,17z/data=!3m1!4b1!4m6!3m5!1s0x882b31d1355e11e1:0x26730b1a474ee3b7!8m2!3d43.7578548!4d-79.5202195!16s%2Fg%2F11qnl0x57s?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D"}
+    ]
+
+    scrape_locations(driver, "richmond_hill", richmond_hill)
+    scrape_locations(driver, "markham", markham)
+    scrape_locations(driver, "toronto", toronto)
+
+    driver.quit()
 
 
 if __name__ == "__main__":
