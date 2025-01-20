@@ -8,30 +8,40 @@ import os
 import json
 
 
-"""Setup Chrome driver with necessary options"""
 def init_driver():
+    """Init the Chromedriver"""
+
     print("Setting up Chrome driver...")
     options = webdriver.ChromeOptions()
-    # options.add_argument('--headless')  # Temporarily disable headless mode for debugging
+    # options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--window-size=1920,1080')  # Set a larger window size
+    options.add_argument('--window-size=1920,1080')
     return webdriver.Chrome(options=options)
 
 
-"""Scrape reviews from a Google Maps restaurant page"""
+# Scrape reviews, given a url
+# Max number of reviews is default to 50
 def get_reviews(driver, restaurant_url, num_reviews=50):
+    """Scrape reviews
+
+    Keyword arguments:
+    driver -- Chromedriver object
+    restaurant_url -- url to the restaurant
+    num_reviews -- maximum number of reviews (default 50)
+    """
+
     reviews = []
     seen_reviews = set()
-    
+
     try:
         print(f"Navigating to restaurant page: {restaurant_url}")
         driver.get(restaurant_url)
-        
-        # Wait longer for initial page load
+
+        # Wait for page to load
         time.sleep(3)
-        
-        print("Looking for reviews button...")
+
+        print("DEBUG: Looking for reviews button")
         try:
             reviews_button = None
             try:
@@ -42,46 +52,46 @@ def get_reviews(driver, restaurant_url, num_reviews=50):
                 print("ERROR: Could not locate reviews button")
                 driver.save_screenshot("debug_screenshot.png")
                 return reviews
-            
+
             if reviews_button:
-                print("Clicking reviews button")
+                print("DEBUG: Clicking reviews button")
                 driver.execute_script("arguments[0].click();", reviews_button)
-                
+
         except TimeoutException:
             print("ERROR: Couldn't find the reviews button. Taking screenshot for debugging")
             driver.save_screenshot("debug_screenshot.png")
             return reviews
-        
+
         # Wait for reviews to load
-        print("Waiting for reviews to load")
+        print("DEBUG: Waiting for reviews to load")
         time.sleep(3)
-        
+
         try:
             reviews_div = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'div[class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]'))
             )
-            print("Reviews section found!")
+            print("DEBUG: Reviews section found!")
         except TimeoutException:
             print("ERROR: Couldn't find the reviews section. Taking screenshot")
             driver.save_screenshot("debug_screenshot2.png")
             return reviews
-        
-        print(f"Starting to collect {num_reviews} reviews")
+
+        print(f"DEBUG: Starting to collect {num_reviews} reviews")
         last_height = driver.execute_script("return arguments[0].scrollHeight", reviews_div)
 
         # Maximum number of scrolls to reach the bottom
         scroll_attempts = 0
         max_scroll_attempts = 30
-        
+
         while len(reviews) < num_reviews and scroll_attempts < max_scroll_attempts:
             scroll_attempts += 1
             print(f"Scroll attempt {scroll_attempts}, collected {len(reviews)} reviews so far")
-            
+
             driver.execute_script('arguments[0].scrollTop = arguments[0].scrollHeight', reviews_div)
             time.sleep(1)
-            
+
             review_elements = driver.find_elements(By.CSS_SELECTOR, 'div[class="jftiEf fontBodyMedium "]')
-            
+
             for review_element in review_elements:
                 if review_element not in seen_reviews:
                     seen_reviews.add(review_element)
@@ -105,7 +115,7 @@ def get_reviews(driver, restaurant_url, num_reviews=50):
                 try:
                     description = review_element.find_element(By.CSS_SELECTOR, 'span[class="wiI7pd"]')
                 except:
-                    print("No description found!")
+                    print("DEBUG: No description found!")
 
                 # Append the descriptions
                 review = {}
@@ -124,32 +134,48 @@ def get_reviews(driver, restaurant_url, num_reviews=50):
 
             new_height = driver.execute_script("return arguments[0].scrollHeight", reviews_div)
             if new_height == last_height:
-                print("Reached the bottom of reviews section or no new reviews loading")
+                print("DEBUG: Reached the bottom of reviews section or no new reviews loading")
                 break
             last_height = new_height
 
     except Exception as e:
-        print(f"An unexpected error occurred: {str(e)}")
+        print(f"ERROR: An unexpected error occurred: {str(e)}")
         driver.save_screenshot("error_screenshot.png")
-    
+
     finally:
-        print(f"Successfully scraped {restaurant_url}")
-    
-    print(f"Successfully collected {len(reviews)} reviews!")
+        print(f"DEBUG: Successfully scraped {restaurant_url}")
+
+    print(f"DEBUG: Successfully collected {len(reviews)} reviews!")
     return reviews[:num_reviews]
 
 
 def print_reviews(reviews, directory, filename):
+    """Print out the reviews into a JSON file
+
+    Keyword arguments:
+    reviews -- reviews passed in as an array
+    directory -- directory to store the reviews in
+    filename -- filename to store the reviews in
+    """
+
     os.makedirs(directory, exist_ok=True) # Ensure the directory exists
     with open(f'{directory}/{filename}.json', 'w') as fd:
         json.dump(reviews, fd, indent=4)
         print(f'Reviews have been written to {directory}/{filename}')
-    
+
     with open(f'{directory}/{directory}.txt', 'a') as fd:
         fd.write(f'{filename}: {len(reviews)}\n')
 
 
 def scrape_locations(driver, city, locations):
+    """Scrape the locations
+
+    Keyword arguments:
+    driver -- Chromedriver object
+    city -- city that the restaurant is in
+    locations -- locations, passed in as an array
+    """
+
     for location in locations:
         reviews = get_reviews(driver, location["url"], 200)
         print_reviews(reviews, city, location["filename"])
@@ -175,9 +201,12 @@ def main():
         {"filename": "1_york_gate_blvd", "url": "https://www.google.com/maps/place/Harvey's/@43.7578548,-79.5202195,17z/data=!3m1!4b1!4m6!3m5!1s0x882b31d1355e11e1:0x26730b1a474ee3b7!8m2!3d43.7578548!4d-79.5202195!16s%2Fg%2F11qnl0x57s?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D"}
     ]
 
-    scrape_locations(driver, "richmond_hill", richmond_hill)
-    scrape_locations(driver, "markham", markham)
-    scrape_locations(driver, "toronto", toronto)
+    # scrape_locations(driver, "richmond_hill", richmond_hill)
+    # scrape_locations(driver, "markham", markham)
+    # scrape_locations(driver, "toronto", toronto)
+
+    ivan = get_reviews(driver, "https://www.google.com/maps/place/Longing+Fusion+Cuisine+%E9%BE%99%E5%BA%AD%E9%A3%9F%E5%BA%9C/@43.8331941,-79.3081584,17z/data=!3m1!4b1!4m6!3m5!1s0x89d4d5cec8fb3c81:0xc0a322cb40c7eb1e!8m2!3d43.8331941!4d-79.3055835!16s%2Fg%2F11wr3mdcky?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D")
+    print_reviews(ivan, "ivan", "longing_fusion_cuisine")
 
     driver.quit()
 
