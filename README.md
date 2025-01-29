@@ -1,5 +1,5 @@
 # Reviews Scraper
-This is a simple script used for the purposes of scraping Google reviews for the DECA BMOR event. The reviews are parsed and written into
+This is a simple script used for the purposes of scraping Google reviews. The reviews are parsed and written into
 a JSON file.  I do not plan on maintaining this.
 
 Usage
