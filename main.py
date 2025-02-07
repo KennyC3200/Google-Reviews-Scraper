@@ -6,6 +6,8 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import time
 import os
 import json
+import ollama
+from ollama import ChatResponse
 
 
 def init_driver():
@@ -172,7 +174,7 @@ def scrape_locations(driver, city, locations):
 
     Keyword arguments:
     driver -- Chromedriver object
-    city -- city that the restaurant is in
+    city -- city that the restaurants are in
     locations -- locations, passed in as an array
     """
 
@@ -201,14 +203,20 @@ def main():
         {"filename": "1_york_gate_blvd", "url": "https://www.google.com/maps/place/Harvey's/@43.7578548,-79.5202195,17z/data=!3m1!4b1!4m6!3m5!1s0x882b31d1355e11e1:0x26730b1a474ee3b7!8m2!3d43.7578548!4d-79.5202195!16s%2Fg%2F11qnl0x57s?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D"}
     ]
 
-    # scrape_locations(driver, "richmond_hill", richmond_hill)
-    # scrape_locations(driver, "markham", markham)
-    # scrape_locations(driver, "toronto", toronto)
-
-    ivan = get_reviews(driver, "https://www.google.com/maps/place/Longing+Fusion+Cuisine+%E9%BE%99%E5%BA%AD%E9%A3%9F%E5%BA%9C/@43.8331941,-79.3081584,17z/data=!3m1!4b1!4m6!3m5!1s0x89d4d5cec8fb3c81:0xc0a322cb40c7eb1e!8m2!3d43.8331941!4d-79.3055835!16s%2Fg%2F11wr3mdcky?entry=ttu&g_ep=EgoyMDI0MTIxMS4wIKXMDSoASAFQAw%3D%3D")
-    print_reviews(ivan, "ivan", "longing_fusion_cuisine")
+    scrape_locations(driver, "richmond_hill", richmond_hill)
+    scrape_locations(driver, "markham", markham)
+    scrape_locations(driver, "toronto", toronto)
 
     driver.quit()
+
+    # Print out AI response for a restaurant
+    response: ChatResponse = ollama.chat(model='deepseek-r1:1.5b', messages=[
+        {
+            'role': 'user',
+            'content': "Given the JSON for the Google reviews of a Harvey's restaurant, provide feedback on what is good about the restaurant and areas for improvement:\n" + open("toronto/1_york_gate_blvd.json", "r").read(),
+        },
+    ])
+    print(response.message.content)
 
 
 if __name__ == "__main__":
