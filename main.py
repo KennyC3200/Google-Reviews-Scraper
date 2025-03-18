@@ -1,7 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import time
 import os
@@ -48,8 +48,7 @@ def get_reviews(driver, restaurant_url, num_reviews=50):
             reviews_button = None
             try:
                 reviews_button = WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, 'button[jsaction*="reviewChart"]'))
-                )
+                    EC.presence_of_element_located((By.CSS_SELECTOR, 'button[jsaction*="reviewChart"]')))
             except:
                 print("ERROR: Could not locate reviews button")
                 driver.save_screenshot("debug_screenshot.png")
@@ -70,8 +69,7 @@ def get_reviews(driver, restaurant_url, num_reviews=50):
 
         try:
             reviews_div = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, 'div[class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]'))
-            )
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'div[class="m6QErb DxyBCb kA9KIf dS8AEf XiKgde "]')))
             print("DEBUG: Reviews section found!")
         except TimeoutException:
             print("ERROR: Couldn't find the reviews section. Taking screenshot")
@@ -207,16 +205,17 @@ def main():
     scrape_locations(driver, "markham", markham)
     scrape_locations(driver, "toronto", toronto)
 
-    driver.quit()
+    # driver.quit()
 
     # Print out AI response for a restaurant
-    response: ChatResponse = ollama.chat(model='deepseek-r1:1.5b', messages=[
-        {
-            'role': 'user',
-            'content': "Given the JSON for the Google reviews of a Harvey's restaurant, provide feedback on what is good about the restaurant and areas for improvement:\n" + open("toronto/1_york_gate_blvd.json", "r").read(),
-        },
-    ])
-    print(response.message.content)
+    # print("The AI is thinking...")
+    # response: ChatResponse = ollama.chat(model='deepseek-r1:1.5b', messages=[
+    #     {
+    #         'role': 'user',
+    #         'content': "Given the JSON for the Google reviews of a Harvey's restaurant, provide feedback on what is good about the restaurant and areas for improvement:\n" + open("toronto/1_york_gate_blvd.json", "r").read(),
+    #     },
+    # ])
+    # print(response.message.content)
 
 
 if __name__ == "__main__":
