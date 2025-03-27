@@ -1,5 +1,11 @@
+.venv
 scraper_env
-*.json
 .editorconfig
-*.png
-*.txt
+pyrightconfig.json
+markham
+richmond_hill
+toronto
+error.png
+*.pyc
+ivan
+main_bak.py

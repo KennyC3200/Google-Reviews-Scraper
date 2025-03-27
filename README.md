@@ -4,14 +4,13 @@ a JSON file.
 
 Usage
 -----
-Dependencies:
-* Selenium
-* Chromedriver
-
-Install Selenium by running `pip3 install selenium`. Install Chromedriver on their website or on macOS install via [homebrew](https://brew.sh/).
-
-**Note:** If you are on macOS, after you have installed all of the dependencies, you will have to create a python virtual environment. There are other workarounds for this but this is the easiest way I found to get the dependencies working properly.
+1. Install `virtualenv` via `pip`. `python3 -m pip install virtualenv`
+2. Source the venv. `source <venv>/bin/activate`
+3. Install the dependencies. `python3 -m pip install -r requirements.txt`
+4. Run the venv. `<venv>/bin/python src/ramsay.py`
 
 TODO
 -----
+* Maybe scroll all the way down first, then collect the reviews. Therefore, can only calculate
+  max scroll attempts and cannot determine max number of reviews
 * Click the sort by newest button
