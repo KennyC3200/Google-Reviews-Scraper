@@ -22,6 +22,7 @@ FIND_ELEMENT_DEFAULT_PARAMS = {
     "show_debug": False,
     "by": By.CSS_SELECTOR
 }
+JSON_OUT = os.makedirs("out", exist_ok=True)
 
 
 def ramsay_init_driver() -> WebDriver:
@@ -212,6 +213,12 @@ def ramsay_scrape_restaurant(driver: WebDriver, restaurant: RamsayRestaurant, ma
         ramsay_screenshot_error(driver, "ramsay_scrape_restaurant")
     finally:
         ramsay_print_debug(f"Collected {len(restaurant.reviews)} reviews")
+
+    # TODO: Handle for duplicate restaraunt names
+    with open(f"out/{restaurant.name}.json", "w") as fd:
+        json.dump([review.ratings for review in restaurant.reviews], fd, indent=4)
+        ramsay_print_valid(f"Reviews have been written to {restaurant.name}.json")
+
     ramsay_print_valid(f"Successfully scraped {str(restaurant)}")
 
 

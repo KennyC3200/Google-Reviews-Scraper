@@ -11,6 +11,6 @@ Usage
 
 TODO
 -----
-* Maybe scroll all the way down first, then collect the reviews. Therefore, can only calculate
-  max scroll attempts and cannot determine max number of reviews
-* Click the sort by newest button
+* Maybe switch to data oriented design instead
+* Add more fields (like sort by date, name, etc.)
+    * Click the sort by newest button
