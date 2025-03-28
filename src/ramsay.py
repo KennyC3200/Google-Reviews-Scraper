@@ -5,23 +5,25 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-from ollama import ChatResponse
 from ramsay_debug import *
 from ramsay_restaurant import *
 import time
 import os
 import json
+import csv
+from ollama import ChatResponse
 import ollama
 
 
 # Constants
-PAGE_WAIT_TIME = int(os.getenv("PAGE_WAIT_TIME", 3))
+PAGE_WAIT_TIME = int(os.getenv("PAGE_WAIT_TIME", 2))
 FIND_ELEMENT_DEFAULT_PARAMS = {
     "timeout": 0,
     "exit_on_fail": False,
     "show_debug": False,
     "by": By.CSS_SELECTOR
 }
+RESTAURANTS_CSV_FILE = os.getenv("RESTAURANTS_CSV_FILE", "restaurants.csv")
 JSON_OUT = os.makedirs("out", exist_ok=True)
 
 
@@ -124,7 +126,7 @@ def ramsay_find_elements_by_element(driver: WebDriver, element: WebElement, tag:
     return elements
 
 
-def ramsay_scrape_restaurant(driver: WebDriver, restaurant: RamsayRestaurant, max_reviews: int=50):
+def ramsay_scrape_restaurant(driver: WebDriver, restaurant: RamsayRestaurant, max_scrolls=10):
     try:
         ramsay_print_debug(
             "Navigating to restaurant | "
@@ -156,26 +158,26 @@ def ramsay_scrape_restaurant(driver: WebDriver, restaurant: RamsayRestaurant, ma
         ramsay_print_debug("Located reviews div")
         
         # Scrape reviews
-        ramsay_print_debug(f"Beginning to collect {max_reviews} reviews")
+        ramsay_print_debug(f"Beginning to collect reviews")
         prev_height = driver.execute_script("return arguments[0].scrollHeight", reviews_div)
 
         # Max number of scrolls to reach the bottom
         scrolls = 0
-        max_scrolls = 30
 
         # Scroll all the way to reach the bottom then scrape the reviews
-        while len(restaurant.reviews) < max_reviews and scrolls < max_scrolls:
+        while scrolls < max_scrolls:
             scrolls += 1
             ramsay_print_debug(f"Scrolled {scrolls} times")
 
             driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", reviews_div)
-            time.sleep(1)
+            time.sleep(0.5)
 
             curr_height = driver.execute_script("return arguments[0].scrollHeight", reviews_div)
             if curr_height == prev_height:
                 ramsay_print_debug("Reached bottom of reviews section")
                 break
             prev_height = curr_height
+        time.sleep(1)
 
         # Scrape the reviews
         ramsay_print_debug("Beginning to scrape the reviews")
@@ -212,12 +214,11 @@ def ramsay_scrape_restaurant(driver: WebDriver, restaurant: RamsayRestaurant, ma
         ramsay_print_error(f"ramsay_scrape_restaurant | Unexpected error: {str(e)}")
         ramsay_screenshot_error(driver, "ramsay_scrape_restaurant")
     finally:
-        ramsay_print_debug(f"Collected {len(restaurant.reviews)} reviews")
+        ramsay_print_valid(f"Collected {len(restaurant.reviews)} reviews")
 
-    # TODO: Handle for duplicate restaraunt names
-    with open(f"out/{restaurant.name}.json", "w") as fd:
+    with open(f"{JSON_OUT}/{restaurant.name}.json", "w") as fd:
         json.dump([review.ratings for review in restaurant.reviews], fd, indent=4)
-        ramsay_print_valid(f"Reviews have been written to {restaurant.name}.json")
+        ramsay_print_valid(f"Reviews have been written to {JSON_OUT}/{restaurant.name}.json")
 
     ramsay_print_valid(f"Successfully scraped {str(restaurant)}")
 
@@ -225,9 +226,11 @@ def ramsay_scrape_restaurant(driver: WebDriver, restaurant: RamsayRestaurant, ma
 def main():
     driver = ramsay_init_driver()
 
-    restaurant = RamsayRestaurant("Longing Fusion Cuisine", "https://www.google.com/maps?sca_esv=338e44cf9c71f0ac&output=search&q=markham+longing+fusion+cuisine&source=lnms&fbs=ABzOT_CWdhQLP1FcmU5B0fn3xuWpA-dk4wpBWOGsoR7DG5zJBv10Kbgy3ptSBM6mMfaz8zD9rbDafxurA2LWQsFsMg4xyw0wcZEfh0F_bSugtfTXcZDlIRGobOM82WNCfxsPUBtuKvdzDM77ZM5aoZ5QE_xqOGiJ4VbI28fUJGueFoKtUJUuWV5PbN2_6qQaRUynPA3fSAvE8zCWmWqH3jLtfC1UuNmmfQ&entry=mc&ved=1t:200715&ictx=111")
-
-    ramsay_scrape_restaurant(driver, restaurant)
+    with open(RESTAURANTS_CSV_FILE) as fp:
+        reader = csv.reader(fp, delimiter=",", quotechar="\"")
+        restaurants = [row for row in reader]
+        for restaurant in restaurants:
+            ramsay_scrape_restaurant(driver, RamsayRestaurant(restaurant[0], restaurant[1]))
 
     ramsay_quit_driver(driver)
 
