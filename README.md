@@ -12,6 +12,5 @@ Usage
 
 TODO
 -----
-* Filter out weird symbols from Google in reviews
 * Add more fields (like sort by date, name, etc.)
     * Click the sort by newest button

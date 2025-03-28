@@ -11,8 +11,8 @@ import time
 import os
 import json
 import csv
-from ollama import ChatResponse
-import ollama
+# from ollama import ChatResponse
+# import ollama
 
 
 # Constants
